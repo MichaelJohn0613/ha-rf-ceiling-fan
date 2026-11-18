@@ -1,0 +1,157 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add a ceiling fan",
+        "description": "Give the fan a name, e.g. Kitchen.",
+        "data": {
+          "name": "Fan name",
+          "bridge": "RF bridge"
+        }
+      },
+      "ready": {
+        "title": "Find the remote",
+        "description": "Stand 1-3 feet from the controller. Press and HOLD any button on the remote, keep holding it, and then start the search. The search takes up to about 35 seconds - keep the button held the whole time.",
+        "menu_options": {
+          "identify": "Start the search - I'm holding a button now",
+          "frequency": "Skip the search - I'll pick the frequency myself",
+          "preset_manual": "Skip the search - enter a DIP switch code"
+        }
+      },
+      "frequency": {
+        "title": "Remote frequency",
+        "description": "Pick the frequency if you know it (the FCC ID on the back of the remote can be looked up), or let the bridge search for it.",
+        "data": {
+          "frequency": "Frequency (MHz)"
+        }
+      },
+      "scan_failed": {
+        "title": "No signal found",
+        "description": "Nothing was heard on any common frequency. Hold the remote 1-3 feet from the controller and keep pressing a button for the whole scan. Infrared (point-at-the-fan) remotes cannot be learned.",
+        "menu_options": {
+          "scan": "Scan again",
+          "frequency": "Pick a frequency myself"
+        }
+      },
+      "button": {
+        "title": "Learn the remote",
+        "description": "Frequency: {frequency} MHz. Learned so far: {learned}.\n\nChoose Ready, then press and HOLD **{button}** on the remote for about 2 seconds, 1-3 feet from the controller. Skip any button your remote doesn't have.",
+        "menu_options": {
+          "capture": "Ready - I'll hold the button now",
+          "skip": "Skip this button"
+        }
+      },
+      "capture_failed": {
+        "title": "Button not learned",
+        "description": "{reason}\n\nTry again holding the button a full 2 seconds, 1-3 feet from the controller.",
+        "menu_options": {
+          "capture": "Try again",
+          "skip": "Skip this button"
+        }
+      },
+      "identify_failed": {
+        "title": "No remote detected",
+        "description": "Nothing was heard on any common frequency. Hold the remote 1-3 feet from the controller and keep pressing a button for the whole search. Infrared (point-at-the-fan) remotes cannot be learned.",
+        "menu_options": {
+          "ready": "Try again - hold the button before starting",
+          "frequency": "Pick the frequency myself",
+          "preset_manual": "Enter a DIP switch code instead"
+        }
+      },
+      "preset_manual": {
+        "title": "DIP switch code",
+        "description": "For Chungear E01BT-S remotes: pick the fan's 4-bit DIP switch code.",
+        "data": {
+          "dip": "Code"
+        }
+      },
+      "extras": {
+        "title": "Custom buttons",
+        "description": "The standard keys are done. You can add extra buttons for anything else on the remote - a breeze mode, a timer, a nightlight. Added so far: {added}.",
+        "menu_options": {
+          "add_custom": "Add a custom button",
+          "finish": "Done - save this fan"
+        }
+      },
+      "add_custom": {
+        "title": "Name the button",
+        "description": "What should this button be called? Use the name on the remote, for example Breeze, Timer, or Nightlight.",
+        "data": {
+          "label": "Button name"
+        }
+      },
+      "custom_failed": {
+        "title": "Button not learned",
+        "description": "{reason}\n\nTry again holding the button a full 2 seconds, 1-3 feet from the controller.",
+        "menu_options": {
+          "capture_custom": "Try again",
+          "extras": "Cancel this button"
+        }
+      }
+    },
+    "progress": {
+      "identifying": "Press and HOLD a button on the remote now, 1-3 feet from the controller, and keep holding until this finishes.",
+      "scanning": "Searching common frequencies. Keep pressing and holding any button on the remote, 1-3 feet from the controller.",
+      "hold_button": "Press and HOLD {button} on the remote now, for about 2 seconds."
+    },
+    "abort": {
+      "no_bridge": "No RF bridge found. Make sure the ESPHome Ceiling Fan Controller is online and running the bridge firmware.",
+      "nothing_learned": "No buttons were learned, so nothing was added.",
+      "already_configured": "This remote is already set up as \"{other}\". If two fans answer to the same remote, change one remote's code (DIP switches) and its fan receiver, then add it again."
+    }
+  },
+  "selector": {
+    "frequency": {
+      "options": {
+        "scan": "I don't know - find it for me"
+      }
+    }
+  },
+  "entity": {
+    "button": {
+      "off": {
+        "name": "Fan off"
+      },
+      "on": {
+        "name": "Fan on"
+      },
+      "low": {
+        "name": "Fan low"
+      },
+      "medium": {
+        "name": "Fan medium"
+      },
+      "high": {
+        "name": "Fan high"
+      },
+      "light": {
+        "name": "Light power"
+      },
+      "dim": {
+        "name": "Light dim"
+      },
+      "reverse": {
+        "name": "Reverse"
+      }
+    },
+    "light": {
+      "light": {
+        "name": "Light"
+      }
+    },
+    "switch": {
+      "light_sync": {
+        "name": "Light sync"
+      },
+      "speed_low": {
+        "name": "Low"
+      },
+      "speed_medium": {
+        "name": "Medium"
+      },
+      "speed_high": {
+        "name": "High"
+      }
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "domain": "rf_ceiling_fan",
+  "name": "RF Ceiling Fan",
+  "after_dependencies": [
+    "esphome"
+  ],
+  "codeowners": [
+    "@MichaelJohn0613"
+  ],
+  "config_flow": true,
+  "documentation": "https://github.com/MichaelJohn0613/ha-rf-ceiling-fan",
+  "integration_type": "device",
+  "iot_class": "assumed_state",
+  "issue_tracker": "https://github.com/MichaelJohn0613/ha-rf-ceiling-fan/issues",
+  "requirements": [],
+  "version": "2.7.1"
+}

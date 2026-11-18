@@ -1,0 +1,243 @@
+# =====================================================================
+# RF Fan Bridge - ESP32 + CC1101
+# Generic learn-and-replay radio for the "RF Ceiling Fan" Home Assistant
+# integration. The integration does all the fan logic; this firmware:
+#   - listen:   tunes the receiver (and turns on "send every frame" while
+#               a button is being learned)
+#   - send_raw: tunes, transmits a learned frame N times, tunes back
+#   - reports received remote frames to HA as esphome.rf_raw events
+#
+# WIRING (CC1101 -> ESP32)
+#   VCC  -> 3.3V (NOT 5V)   GND  -> GND
+#   SCK  -> GPIO18          MISO -> GPIO19
+#   MOSI -> GPIO23          CSN  -> GPIO5
+#   GDO0 -> GPIO4  / D4     (send)
+#   GDO2 -> GPIO16 / RX2    (receive - needed for learning + remote sync)
+#
+# Needs in secrets.yaml: wifi_ssid, wifi_password, api_encryption_key,
+# fallback_ap_password.
+#
+# The CC1101 tunes 300-348 MHz and 387-464 MHz. This board's antenna
+# circuit is built for 433 MHz; 303-315 MHz works but with less range.
+# =====================================================================
+
+esphome:
+  name: ceiling-fan-controller
+  friendly_name: Ceiling Fan Controller
+  on_boot:
+    priority: -100
+    then:
+      - lambda: "id(rf_radio).set_frequency(id(listen_freq));"
+      - cc1101.begin_rx: rf_radio
+
+esp32:
+  variant: esp32
+  framework:
+    type: esp-idf
+
+logger:
+  level: DEBUG
+
+api:
+  encryption:
+    key: !secret api_encryption_key
+  actions:
+    # Tune the receiver. frequency in MHz (e.g. 304.25).
+    # learning: true = report every frame (for learning), false = normal
+    - action: listen
+      variables:
+        frequency: float
+        learning: bool
+      then:
+        - lambda: |-
+            if (frequency < 300.0f || frequency > 464.0f) return;
+            id(listen_freq) = frequency * 1e6f;
+            id(learning_mode) = learning;
+            id(rf_radio).set_frequency(id(listen_freq));
+            id(rf_radio).begin_rx();
+            ESP_LOGI("bridge", "Listening on %.3f MHz%s", frequency, learning ? " (learning)" : "");
+
+    # Transmit a learned frame. timings in microseconds: positive = carrier
+    # on, negative = off, ending with the gap. repeats = how many frames.
+    - action: send_raw
+      variables:
+        frequency: float
+        timings: int[]
+        repeats: int
+      then:
+        - script.execute:
+            id: rf_send
+            frequency: !lambda "return frequency;"
+            timings: !lambda "return std::vector<int>(timings.begin(), timings.end());"
+            repeats: !lambda "return repeats;"
+
+ota:
+  - platform: esphome
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "Fan controller Fallback Hotspot"
+    password: !secret fallback_ap_password
+
+captive_portal:
+
+# ---------------------------------------------------------------------
+# Radio
+# ---------------------------------------------------------------------
+spi:
+  clk_pin: GPIO18
+  miso_pin: GPIO19
+  mosi_pin: GPIO23
+
+cc1101:
+  id: rf_radio
+  cs_pin: GPIO5
+  frequency: 304.25MHz      # replaced at boot by the saved listen frequency
+  output_power: 11
+
+remote_transmitter:
+  id: rf_tx
+  pin: GPIO4
+  carrier_duty_percent: 100%
+  non_blocking: true
+  on_transmit:
+    then:
+      - cc1101.begin_tx: rf_radio
+  on_complete:
+    then:
+      - cc1101.begin_rx: rf_radio
+
+remote_receiver:
+  id: rf_rx
+  pin: GPIO16
+  dump: []
+  tolerance: 50%
+  filter: 100us
+  idle: 4ms
+  buffer_size: 8kb
+  on_raw:
+    then:
+      - lambda: |-
+          // Ignore noise: real remote frames have many pulses
+          if (x.size() < 16 || x.size() > 400) return;
+          uint32_t duration = 0;
+          for (auto v : x) duration += (v < 0 ? -v : v);
+          if (duration < 5000) return;
+
+          // Estimate the silent gap between repeated frames from the time
+          // between consecutive frames (the gap itself is longer than idle,
+          // so it never appears inside a frame)
+          static uint32_t last_us = 0;
+          const uint32_t now = micros();
+          const uint32_t period = now - last_us;
+          last_us = now;
+          int32_t gap = 0;
+          if (period > duration && period < 200000) gap = period - duration;
+
+          // Normal mode: a held button sends ~30 frames/s - report a few
+          static uint32_t last_report_ms = 0;
+          const uint32_t ms = millis();
+          if (!id(learning_mode) && ms - last_report_ms < 150) return;
+          last_report_ms = ms;
+          if (id(rf_tx_busy)) return;  // don't report our own transmission
+
+          std::string s;
+          s.reserve(x.size() * 6);
+          for (size_t i = 0; i < x.size(); i++) {
+            if (i) s += ',';
+            s += std::to_string(x[i]);
+          }
+          id(last_frame) = s;
+          id(last_gap) = gap;
+          id(report_frame).execute();
+
+globals:
+  - id: listen_freq
+    type: float
+    restore_value: true
+    initial_value: "304250000.0f"
+  - id: learning_mode
+    type: bool
+    initial_value: "false"
+  - id: rf_tx_busy
+    type: bool
+    initial_value: "false"
+  - id: last_frame
+    type: std::string
+  - id: last_gap
+    type: int
+    initial_value: "0"
+
+script:
+  - id: report_frame
+    mode: queued
+    max_runs: 40
+    then:
+      - homeassistant.event:
+          event: esphome.rf_raw
+          data:
+            frequency: !lambda "return std::to_string(id(listen_freq) / 1e6f);"
+            timings: !lambda "return id(last_frame);"
+            gap: !lambda "return std::to_string(id(last_gap));"
+
+  # One sender: queued, so commands go out one at a time
+  - id: rf_send
+    mode: queued
+    max_runs: 20
+    parameters:
+      frequency: float
+      timings: int[]
+      repeats: int
+    then:
+      - if:
+          condition:
+            lambda: |-
+              return frequency >= 300.0f && frequency <= 464.0f &&
+                     timings.size() >= 4 && timings.size() <= 600 &&
+                     repeats >= 1 && repeats <= 200;
+          then:
+            - lambda: |-
+                id(rf_tx_busy) = true;
+                id(rf_radio).set_frequency(frequency * 1e6f);
+            - remote_transmitter.transmit_raw:
+                carrier_frequency: 0Hz
+                code: !lambda "return std::vector<int32_t>(timings.begin(), timings.end());"
+                repeat:
+                  times: !lambda "return repeats;"
+                  wait_time: 0s
+            - delay: !lambda |-
+                uint32_t frame = 0;
+                for (auto v : timings) frame += (v < 0 ? -v : v);
+                return (uint32_t) ((uint64_t) frame * repeats / 1000) + 200;
+            - lambda: |-
+                id(rf_radio).set_frequency(id(listen_freq));
+                id(rf_radio).begin_rx();
+                id(rf_tx_busy) = false;
+          else:
+            - logger.log:
+                level: WARN
+                format: "send_raw ignored: bad frequency, timings or repeats"
+
+# ---------------------------------------------------------------------
+# Diagnostics
+# ---------------------------------------------------------------------
+button:
+  - platform: restart
+    name: "Restart"
+    entity_category: config
+
+sensor:
+  - platform: wifi_signal
+    name: "WiFi Signal"
+    update_interval: 60s
+    entity_category: diagnostic
+  - platform: template
+    name: "Listen Frequency"
+    unit_of_measurement: "MHz"
+    accuracy_decimals: 3
+    icon: "mdi:radio-tower"
+    entity_category: diagnostic
+    update_interval: 30s
+    lambda: "return id(listen_freq) / 1e6f;"

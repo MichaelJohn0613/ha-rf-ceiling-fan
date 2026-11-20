@@ -4,6 +4,15 @@ All notable changes are recorded here. This project follows
 [Semantic Versioning](https://semver.org): MAJOR.MINOR.PATCH — a MAJOR bump
 breaks existing setups, MINOR adds features compatibly, PATCH fixes bugs.
 
+## [2.7.2] - 2026-11-20
+
+### Fixed
+- **Light sometimes flicking off and back on (or on and back off)** when
+  controlled from Home Assistant. The light and reverse keys are toggles and
+  were sent as a 1.1 s button hold; if the fan missed a few frames mid-burst it
+  counted two presses and the toggle undid itself. They are now sent as a
+  short 0.5 s tap.
+
 ## [2.7.1] - 2026-11-18
 
 Initial release.

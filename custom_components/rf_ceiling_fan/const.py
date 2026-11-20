@@ -25,8 +25,11 @@ RAW_EVENT = "esphome.rf_raw"
 COMMANDS = ["off", "on", "low", "medium", "high", "light", "dim", "reverse"]
 SPEED_COMMANDS = ["low", "medium", "high"]
 
-# How long one command "holds the button" (the fans need about 1 s)
-HOLD_MS = {"dim": 1600}
+# How long one command "holds the button" (the fans need about 1 s).
+# Toggle keys get a short tap instead: if the fan's receiver misses a few
+# frames in the middle of a long burst it counts two presses, and a toggle
+# pressed twice undoes itself (light flicks off and straight back on).
+HOLD_MS = {"dim": 1600, "light": 500, "reverse": 500}
 DEFAULT_HOLD_MS = 1100
 DEFAULT_GAP_US = 10000
 

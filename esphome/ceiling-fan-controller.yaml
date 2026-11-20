@@ -65,6 +65,9 @@ api:
         timings: int[]
         repeats: int
       then:
+        - lambda: |-
+            ESP_LOGI("bridge", "send_raw request: %u timings x %d at %.3f MHz",
+                     (unsigned) timings.size(), repeats, frequency);
         - script.execute:
             id: rf_send
             frequency: !lambda "return frequency;"
@@ -142,6 +145,8 @@ remote_receiver:
           if (!id(learning_mode) && ms - last_report_ms < 150) return;
           last_report_ms = ms;
           if (id(rf_tx_busy)) return;  // don't report our own transmission
+          ESP_LOGI("bridge", "RX frame: %u timings, %u us, gap %d us",
+                   (unsigned) x.size(), (unsigned) duration, (int) gap);
 
           std::string s;
           s.reserve(x.size() * 6);
@@ -202,6 +207,11 @@ script:
             - lambda: |-
                 id(rf_tx_busy) = true;
                 id(rf_radio).set_frequency(frequency * 1e6f);
+                uint32_t frame_us = 0;
+                for (auto v : timings) frame_us += (v < 0 ? -v : v);
+                ESP_LOGI("bridge", "TX start: %u timings x %d = %u ms",
+                         (unsigned) timings.size(), repeats,
+                         (unsigned) ((uint64_t) frame_us * repeats / 1000));
             # The whole burst goes out as ONE continuous transmission. Letting
             # the transmitter repeat the frame itself can leave short breaks
             # between repeats; a fan that sees a break counts a second press,
@@ -222,6 +232,7 @@ script:
                 id(rf_radio).set_frequency(id(listen_freq));
                 id(rf_radio).begin_rx();
                 id(rf_tx_busy) = false;
+                ESP_LOGI("bridge", "TX done, listening again");
           else:
             - logger.log:
                 level: WARN

@@ -4,6 +4,15 @@ All notable changes are recorded here. This project follows
 [Semantic Versioning](https://semver.org): MAJOR.MINOR.PATCH — a MAJOR bump
 breaks existing setups, MINOR adds features compatibly, PATCH fixes bugs.
 
+## [2.7.4] - 2026-11-20
+
+### Fixed
+- **Light flicking off and back on (or on and back off)** when controlled from
+  Home Assistant. The light and reverse keys are toggles; any burst long
+  enough for the fan to count twice undid itself. They are now sent as a
+  0.25 s tap, which tested reliable with no bounce. Use together with the
+  bridge firmware update below.
+
 ## Bridge firmware - 2026-11-20
 
 ### Fixed

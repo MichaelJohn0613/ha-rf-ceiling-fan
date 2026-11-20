@@ -4,6 +4,13 @@ All notable changes are recorded here. This project follows
 [Semantic Versioning](https://semver.org): MAJOR.MINOR.PATCH — a MAJOR bump
 breaks existing setups, MINOR adds features compatibly, PATCH fixes bugs.
 
+## [2.7.3] - 2026-11-20
+
+### Fixed
+- **Light missing commands after 2.7.2.** The 0.5 s tap was too short for
+  fans at the edge of the bridge's range. Toggle keys are now sent for 0.8 s,
+  between the 0.5 s that was missed and the 1.1 s that could double-toggle.
+
 ## [2.7.2] - 2026-11-20
 
 ### Fixed

@@ -29,7 +29,7 @@ SPEED_COMMANDS = ["low", "medium", "high"]
 # Toggle keys get a short tap instead: if the fan's receiver misses a few
 # frames in the middle of a long burst it counts two presses, and a toggle
 # pressed twice undoes itself (light flicks off and straight back on).
-HOLD_MS = {"dim": 1600, "light": 500, "reverse": 500}
+HOLD_MS = {"dim": 1600, "light": 800, "reverse": 800}
 DEFAULT_HOLD_MS = 1100
 DEFAULT_GAP_US = 10000
 

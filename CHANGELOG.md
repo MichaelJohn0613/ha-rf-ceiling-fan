@@ -4,6 +4,15 @@ All notable changes are recorded here. This project follows
 [Semantic Versioning](https://semver.org): MAJOR.MINOR.PATCH — a MAJOR bump
 breaks existing setups, MINOR adds features compatibly, PATCH fixes bugs.
 
+## Bridge firmware - 2026-11-20
+
+### Fixed
+- **Light flicking off and back on** (or on and back off). The bridge let the
+  transmitter repeat each frame itself, which can leave short breaks between
+  repeats; the fan counted a break as a second press of the light toggle. The
+  bridge now sends the whole burst as one continuous transmission. Reflash the
+  bridge with the updated `esphome/ceiling-fan-controller.yaml`.
+
 ## [2.7.3] - 2026-11-20
 
 ### Fixed

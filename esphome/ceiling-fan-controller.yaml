@@ -196,17 +196,24 @@ script:
             lambda: |-
               return frequency >= 300.0f && frequency <= 464.0f &&
                      timings.size() >= 4 && timings.size() <= 600 &&
-                     repeats >= 1 && repeats <= 200;
+                     repeats >= 1 && repeats <= 200 &&
+                     timings.size() * repeats <= 6000;
           then:
             - lambda: |-
                 id(rf_tx_busy) = true;
                 id(rf_radio).set_frequency(frequency * 1e6f);
+            # The whole burst goes out as ONE continuous transmission. Letting
+            # the transmitter repeat the frame itself can leave short breaks
+            # between repeats; a fan that sees a break counts a second press,
+            # and a toggle key (the light) pressed twice undoes itself.
             - remote_transmitter.transmit_raw:
                 carrier_frequency: 0Hz
-                code: !lambda "return std::vector<int32_t>(timings.begin(), timings.end());"
-                repeat:
-                  times: !lambda "return repeats;"
-                  wait_time: 0s
+                code: !lambda |-
+                  std::vector<int32_t> burst;
+                  burst.reserve(timings.size() * repeats);
+                  for (int r = 0; r < repeats; r++)
+                    burst.insert(burst.end(), timings.begin(), timings.end());
+                  return burst;
             - delay: !lambda |-
                 uint32_t frame = 0;
                 for (auto v : timings) frame += (v < 0 ? -v : v);

@@ -98,7 +98,10 @@ cc1101:
   id: rf_radio
   cs_pin: GPIO5
   frequency: 304.25MHz      # replaced at boot by the saved listen frequency
-  output_power: 11
+  # Transmit power in dBm (max 11). Too much overloads a fan that's close to
+  # the bridge, and it then ignores the command. 5 suits a typical house;
+  # lower it if the nearest fan is unreliable, raise it if the farthest is.
+  output_power: 5
 
 remote_transmitter:
   id: rf_tx

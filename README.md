@@ -61,6 +61,13 @@ CC1101 is a **3.3 V** part — do not feed it 5 V. After flashing, check the
 ESPHome log for the CC1101 **Chip ID**: `0x0014` or `0x0004` means the radio is
 talking. `0x0000`, or an ID starting `0xFF`, means a loose or wrong SPI wire.
 
+**Placement and power.** Too *strong* a signal is a problem as well as too
+weak: a fan in the same room as the bridge can be overloaded and ignore
+commands, even though its own remote works. Put the bridge somewhere central,
+ideally not in a room with a fan, and tune `output_power` in the bridge config
+(default `5`, maximum `11`): lower it if the nearest fan is unreliable, raise
+it if the farthest one is.
+
 ---
 
 ## 1. Flash the bridge

@@ -13,6 +13,13 @@ breaks existing setups, MINOR adds features compatibly, PATCH fixes bugs.
   0.25 s tap, which tested reliable with no bounce. Use together with the
   bridge firmware update below.
 
+## Bridge firmware - 2026-11-21
+
+### Changed
+- Transmit power lowered from 11 to 5 dBm. At full power a fan close to the
+  bridge could be overloaded and ignore commands. The README now covers
+  placement and tuning `output_power`.
+
 ## Bridge firmware - 2026-11-20
 
 ### Fixed

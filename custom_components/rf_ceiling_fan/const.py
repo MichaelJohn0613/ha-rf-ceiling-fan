@@ -8,12 +8,18 @@ CONF_COMMANDS = "commands"        # {command: {"timings": [...], "gap": us}}
 CONF_DIP = "dip"                  # only for recognised DIP-switch remotes
 CONF_PRESET = "preset"            # name of the recognised remote model, if any
 CONF_LABELS = "labels"            # {custom command key: display name}
+CONF_TX_POWER = "tx_power"        # option: per-fan transmit power, dBm
+
+# Range the CC1101 accepts for output power (dBm)
+TX_POWER_MIN = -30
+TX_POWER_MAX = 11
 
 # Prefix marking a user-named custom button (vs. the standard keys below)
 CUSTOM_PREFIX = "custom_"
 
 # Bridge actions are exposed by ESPHome as esphome.<device>_<action>
 SEND_SUFFIX = "_send_raw"
+SEND_POWER_SUFFIX = "_send_raw_power"   # same, plus a transmit power (newer bridges)
 LISTEN_SUFFIX = "_listen"
 
 # Event fired by the bridge for every received remote frame

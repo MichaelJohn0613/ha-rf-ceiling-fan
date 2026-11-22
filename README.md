@@ -64,9 +64,17 @@ talking. `0x0000`, or an ID starting `0xFF`, means a loose or wrong SPI wire.
 **Placement and power.** Too *strong* a signal is a problem as well as too
 weak: a fan in the same room as the bridge can be overloaded and ignore
 commands, even though its own remote works. Put the bridge somewhere central,
-ideally not in a room with a fan, and tune `output_power` in the bridge config
-(default `5`, maximum `11`): lower it if the nearest fan is unreliable, raise
-it if the farthest one is.
+ideally not in a room with a fan, and tune `tx_power` at the top of the bridge
+config (default `5`, maximum `11`): lower it if the nearest fan is unreliable,
+raise it if the farthest one is.
+
+**Per-fan power.** If no single power suits every fan — usually because one
+fan is close to the bridge — give that fan its own: **Settings → Devices &
+services → RF Ceiling Fan → the fan → Configure → Transmit power** (dBm, -30 to
+11; leave empty for the bridge default). Try `0` or `-10` for a fan in the same
+room as the bridge. Needs bridge firmware with the `send_raw_power` action
+(the config in this repo); with older firmware the setting is ignored and a
+warning is logged.
 
 ---
 

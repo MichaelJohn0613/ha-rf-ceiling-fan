@@ -21,6 +21,12 @@
 # circuit is built for 433 MHz; 303-315 MHz works but with less range.
 # =====================================================================
 
+substitutions:
+  # Default transmit power, dBm (max 11). Too much overloads a fan that's
+  # close to the bridge, and it then ignores the command. Per-fan power can
+  # also be set in Home Assistant (RF Ceiling Fan > the fan > Configure).
+  tx_power: "5"
+
 esphome:
   name: ceiling-fan-controller
   friendly_name: Ceiling Fan Controller
@@ -73,6 +79,26 @@ api:
             frequency: !lambda "return frequency;"
             timings: !lambda "return std::vector<int>(timings.begin(), timings.end());"
             repeats: !lambda "return repeats;"
+            power: !lambda "return -99.0f;"
+
+    # Same as send_raw, at a given transmit power in dBm (-30 to 11) - used
+    # for fans that need less (or more) than the default.
+    - action: send_raw_power
+      variables:
+        frequency: float
+        timings: int[]
+        repeats: int
+        power: float
+      then:
+        - lambda: |-
+            ESP_LOGI("bridge", "send_raw_power request: %u timings x %d at %.3f MHz, %.0f dBm",
+                     (unsigned) timings.size(), repeats, frequency, power);
+        - script.execute:
+            id: rf_send
+            frequency: !lambda "return frequency;"
+            timings: !lambda "return std::vector<int>(timings.begin(), timings.end());"
+            repeats: !lambda "return repeats;"
+            power: !lambda "return power;"
 
 ota:
   - platform: esphome
@@ -98,10 +124,7 @@ cc1101:
   id: rf_radio
   cs_pin: GPIO5
   frequency: 304.25MHz      # replaced at boot by the saved listen frequency
-  # Transmit power in dBm (max 11). Too much overloads a fan that's close to
-  # the bridge, and it then ignores the command. 5 suits a typical house;
-  # lower it if the nearest fan is unreliable, raise it if the farthest is.
-  output_power: 5
+  output_power: ${tx_power}
 
 remote_transmitter:
   id: rf_tx
@@ -198,6 +221,7 @@ script:
       frequency: float
       timings: int[]
       repeats: int
+      power: float          # dBm; below -30 means "use the default"
     then:
       - if:
           condition:
@@ -215,6 +239,13 @@ script:
                 ESP_LOGI("bridge", "TX start: %u timings x %d = %u ms",
                          (unsigned) timings.size(), repeats,
                          (unsigned) ((uint64_t) frame_us * repeats / 1000));
+            - if:
+                condition:
+                  lambda: "return power >= -30.0f && power <= 11.0f;"
+                then:
+                  - cc1101.set_output_power:
+                      id: rf_radio
+                      value: !lambda "return power;"
             # The whole burst goes out as ONE continuous transmission. Letting
             # the transmitter repeat the frame itself can leave short breaks
             # between repeats; a fan that sees a break counts a second press,
@@ -236,6 +267,9 @@ script:
                 id(rf_radio).begin_rx();
                 id(rf_tx_busy) = false;
                 ESP_LOGI("bridge", "TX done, listening again");
+            - cc1101.set_output_power:
+                id: rf_radio
+                value: ${tx_power}
           else:
             - logger.log:
                 level: WARN

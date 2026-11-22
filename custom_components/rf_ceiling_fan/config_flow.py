@@ -9,9 +9,17 @@ from typing import Any
 
 import voluptuous as vol
 
-from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigFlow,
+    ConfigFlowResult,
+    OptionsFlow,
+)
 from homeassistant.core import Event, callback
 from homeassistant.helpers.selector import (
+    NumberSelector,
+    NumberSelectorConfig,
+    NumberSelectorMode,
     SelectSelector,
     SelectSelectorConfig,
     SelectSelectorMode,
@@ -21,6 +29,9 @@ from homeassistant.util import slugify
 from . import async_listen, get_hub
 from . import const
 from .const import (
+    CONF_TX_POWER,
+    TX_POWER_MAX,
+    TX_POWER_MIN,
     COMMANDS,
     CONF_BRIDGE,
     CONF_COMMANDS,
@@ -72,6 +83,11 @@ class LearnError(Exception):
 
 class RFCeilingFanConfigFlow(ConfigFlow, domain=DOMAIN):
     VERSION = 2
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
+        return RFCeilingFanOptionsFlow()
 
     def __init__(self) -> None:
         self._name = ""
@@ -517,3 +533,37 @@ class RFCeilingFanConfigFlow(ConfigFlow, domain=DOMAIN):
         if self._labels:
             data[CONF_LABELS] = self._labels
         return self.async_create_entry(title=self._name, data=data)
+
+
+class RFCeilingFanOptionsFlow(OptionsFlow):
+    """Per-fan settings: currently just the transmit power."""
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        if user_input is not None:
+            options = {}
+            if user_input.get(CONF_TX_POWER) is not None:
+                options[CONF_TX_POWER] = float(user_input[CONF_TX_POWER])
+            return self.async_create_entry(data=options)
+
+        current = self.config_entry.options.get(CONF_TX_POWER)
+        field = (
+            vol.Optional(CONF_TX_POWER, description={"suggested_value": current})
+            if current is not None
+            else vol.Optional(CONF_TX_POWER)
+        )
+        schema = vol.Schema(
+            {
+                field: NumberSelector(
+                    NumberSelectorConfig(
+                        min=TX_POWER_MIN,
+                        max=TX_POWER_MAX,
+                        step=1,
+                        mode=NumberSelectorMode.BOX,
+                        unit_of_measurement="dBm",
+                    )
+                )
+            }
+        )
+        return self.async_show_form(step_id="init", data_schema=schema)

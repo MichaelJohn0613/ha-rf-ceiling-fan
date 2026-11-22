@@ -153,5 +153,19 @@
         "name": "High"
       }
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Fan settings",
+        "description": "Transmit power for this fan only. A fan close to the bridge can be overloaded by too strong a signal and ignore commands: give it a lower power. Leave empty to use the bridge's own setting.",
+        "data": {
+          "tx_power": "Transmit power (dBm)"
+        },
+        "data_description": {
+          "tx_power": "-30 (weakest) to 11 (strongest). Try 0 or -10 for a fan in the same room as the bridge."
+        }
+      }
+    }
   }
 }

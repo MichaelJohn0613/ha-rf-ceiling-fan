@@ -16,10 +16,12 @@ from .const import (
     CONF_BRIDGE,
     CONF_COMMANDS,
     CONF_FREQUENCY,
+    CONF_TX_POWER,
     DOMAIN,
     LISTEN_SUFFIX,
     MAX_QUEUE,
     RAW_EVENT,
+    SEND_POWER_SUFFIX,
     SEND_SETTLE,
     SEND_SUFFIX,
     SPEED_COMMANDS,
@@ -53,6 +55,7 @@ class Sender:
         self._entry = entry
         self._queue: deque[str] = deque()
         self._worker: asyncio.Task | None = None
+        self._warned_power = False
 
     @callback
     def submit(self, command: str) -> None:
@@ -72,16 +75,10 @@ class Sender:
             if template is None:
                 continue
             frame, repeats = transmission(template, command)
+            service, data = self._service(frame, repeats)
             try:
                 await self._hass.services.async_call(
-                    "esphome",
-                    self._entry.data[CONF_BRIDGE] + SEND_SUFFIX,
-                    {
-                        "frequency": float(self._entry.data[CONF_FREQUENCY]),
-                        "timings": frame,
-                        "repeats": repeats,
-                    },
-                    blocking=True,
+                    "esphome", service, data, blocking=True
                 )
             except Exception:  # noqa: BLE001 - the bridge may be offline
                 _LOGGER.exception("%s: sending %s failed", self._entry.title, command)
@@ -89,6 +86,34 @@ class Sender:
                 return
             # Hold the radio for as long as the transmission lasts
             await self._wait(sum(abs(v) for v in frame) * repeats / 1e6 + SEND_SETTLE)
+
+    def _service(self, frame: list[int], repeats: int) -> tuple[str, dict]:
+        """Pick the bridge action, adding this fan's transmit power if set.
+
+        A fan close to the bridge can be overloaded by full power and ignore
+        it, so each fan may have its own power. Older bridge firmware has no
+        power action; then the bridge's own power is used.
+        """
+        bridge = self._entry.data[CONF_BRIDGE]
+        data: dict = {
+            "frequency": float(self._entry.data[CONF_FREQUENCY]),
+            "timings": frame,
+            "repeats": repeats,
+        }
+        power = self._entry.options.get(CONF_TX_POWER)
+        if power is None:
+            return bridge + SEND_SUFFIX, data
+        if self._hass.services.has_service("esphome", bridge + SEND_POWER_SUFFIX):
+            data["power"] = float(power)
+            return bridge + SEND_POWER_SUFFIX, data
+        if not self._warned_power:
+            self._warned_power = True
+            _LOGGER.warning(
+                "%s: a transmit power is set, but the bridge firmware has no "
+                "send_raw_power action yet; update the bridge to use it",
+                self._entry.title,
+            )
+        return bridge + SEND_SUFFIX, data
 
     async def _wait(self, seconds: float) -> None:
         await asyncio.sleep(seconds)

@@ -4,6 +4,26 @@ All notable changes are recorded here. This project follows
 [Semantic Versioning](https://semver.org): MAJOR.MINOR.PATCH — a MAJOR bump
 breaks existing setups, MINOR adds features compatibly, PATCH fixes bugs.
 
+## [2.8.0] - 2026-11-22
+
+### Added
+- **Per-fan transmit power.** A fan close to the bridge can be overloaded by
+  a strong signal and ignore it, while distant fans need full power. Each fan
+  now has **Configure → Transmit power** (-30 to 11 dBm); leave it empty to
+  use the bridge's default. Requires the updated bridge firmware below, which
+  adds a `send_raw_power` action; with older firmware the setting is ignored
+  and a warning is logged.
+
+### Changed
+- Minimum Home Assistant version is now 2024.12.
+
+## Bridge firmware - 2026-11-22
+
+### Added
+- `send_raw_power` action: like `send_raw`, plus a transmit power in dBm for
+  that one transmission. The default power is now the `tx_power`
+  substitution at the top of the config.
+
 ## [2.7.4] - 2026-11-20
 
 ### Fixed
